@@ -1,91 +1,121 @@
-package objects;
+package exec;
 
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import exec.SmartRockets;
-import exec.ThreadManager;
+import objects.CalculateFitness;
+import objects.DNA;
+import objects.Rocket;
 import processing.core.PApplet;
 import processing.core.PVector;
 
 public class Population extends Thread {
+	private static final long TARGET_WAIT_TIME = (long) (1000000000d / SmartRockets.FPS); // nanoseconds
+
 	static PApplet parent;
 	
 	public Rocket[] rockets;
 	ArrayList<Rocket> matingpool = new ArrayList<Rocket>();
-	boolean success = false, allDone = false;
+	private boolean success = false;
+
+	boolean allDone = false;
 	public boolean passedTheObstacle = false;
 	public PVector targetPos = null;
-	CalculateFitness populationFitnessFunction;
-	Color fill = new Color(0, 0, 0);
+	private CalculateFitness populationFitnessFunction;
+	private Color fill;
 	
-	private ThreadManager threadManager;
-	private volatile boolean toStop = false, toEvaluate = false, toSelect = false;
+	//private ThreadManager threadManager;
+	private volatile boolean toStop = false, wait = false; //, toEvaluate = false, toSelect = false;
 	
 
-	public Population(int popsize, CalculateFitness calc, int threadCount) {
-		populationFitnessFunction = calc;
+
+	public Population(int popsize, CalculateFitness calc, Color color) {
+		fill = color;
+		setPopulationFitnessFunction(calc);
 		rockets = new Rocket[popsize];
 		for (int i = 0; i < popsize; i++) {
-			rockets[i] = new Rocket(new Color(0, 0, 0), populationFitnessFunction);
+			rockets[i] = new Rocket(this);
 		}
 		
-		threadManager = new ThreadManager(this, threadCount, rockets);
+		//threadManager = new ThreadManager(this, threadCount, rockets);
 	}
 
 	@Override
 	public void run() {
-		threadManager.start();
+		long startTime, endTime, time;
 		
-//		while (!toStop) {
-//			if (toEvaluate) {
-//				evaluate();
-//				toEvaluate = false;
-//			}
-//			
-//			if (toSelect) {
-//				selection();
-//				toSelect = false;
-//			}
-//		}
-//		
+		while (!toStop) {
+			//			if (wait) {
+			//				try {
+			//					sleep(10000);
+			//				} catch (InterruptedException e) {}
+			//			}
+			//			else {
+			//				startTime = System.nanoTime();
+
+			update();
+			
+			//
+			//				endTime = System.nanoTime() - startTime;
+			//				time = (TARGET_WAIT_TIME - endTime) / 1000000; // nanoseconds * 1,000,000 = milliseconds
+			//				if (time < 0)
+			//					time = 0;
+
+			try {
+				sleep(10000);
+			} catch (InterruptedException e) {}
+
+			//			try {
+			//				sleep(10000);
+			//			} catch (InterruptedException e) {
+			//				// wakes up
+			//			}
+			//			}
+		}
+	}
+	
+	/**
+	 * An alias for the java.lang.Thread.interrupt()
+	 */
+	public void continueWork() {
+		interrupt();
 	}
 	
 	public void setToStop() {
 		toStop = true;
 
-		threadManager.stop();
-		try {
-			threadManager.join();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+//		threadManager.stop();
+//		try {
+//			threadManager.join();
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
-	public void setToUpdate() {
-		threadManager.setDoneFalse();
-	}
-	
-	public boolean allThreadsDone() {
-		return threadManager.allDone();
-	}
+//	public void setToUpdate() {
+//		threadManager.setDoneFalse();
+//	}
+//	
+//	public boolean allThreadsDone() {
+//		return threadManager.allDone();
+//	}
 	
 	public void evaluate() {
-		System.out.println("Evaluate called");
-		try {
-			throw new Exception();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
+//		System.out.println("Evaluate called");
+//		try {
+//			throw new Exception();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		
 		this.matingpool.clear();
 		
 		Double maxfit = 0d;
 		// Iterate through all rockets and calcultes their fitness
 			for (int i = 0; i < rockets.length; i++) {
 				// Calculates fitness
-				rockets[i].calcFitness(success, this);
+				rockets[i].calcFitness();
 				// If current fitness is greater than max, then make max eqaul to current
 				if (rockets[i].fitness > maxfit) {
 					maxfit = rockets[i].fitness;
@@ -96,26 +126,24 @@ public class Population extends Thread {
 		ArrayList<Rocket> debugR = new ArrayList<Rocket>();
 		ArrayList<Rocket> matingPollCandidates = new ArrayList<Rocket>();
 
-		for (int i = 0; i < rockets.length; i++) {
-			System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime);
-			if (rockets[i].fitness != 0) {
-				debugR.add(rockets[i]);
+//		for (int i = 0; i < rockets.length; i++) {
+////			System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime 
+////					+ " :: " + rockets[i].passedObstacleTime);
+//			if (rockets[i].fitness != 0) {
+//				debugR.add(rockets[i]);
+//				
+////				rockets[i].fitness /= maxfit;
+////				rockets[i].fitness *= rockets[i].fitness;
+//			}
+//		}
 				
-//				rockets[i].fitness /= maxfit;
-//				rockets[i].fitness *= rockets[i].fitness;
-			}
-		}
-		
-		if (debugR.size() == 0)
-			System.out.println();
-		
 		// Normalises fitnesses
 
 		for (int i = 0; i < rockets.length; i++) {
 			if (rockets[i].fitness != 0) {
 				debugR.add(rockets[i]);
 				matingPollCandidates.add(rockets[i]);
-				System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime);
+				//System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime);
 				rockets[i].fitness /= maxfit;
 				rockets[i].fitness *= rockets[i].fitness;
 			}
@@ -134,7 +162,8 @@ public class Population extends Thread {
 		if (matingPollCandidates.size() == 0)
 			System.out.println();
 		
-		System.out.println("Thresh:" + threshhold);
+		System.out.println(fill.toString()
+				+ "\nThresh:" + threshhold);
 		for (Rocket r : matingPollCandidates) {
 			double fitness = r.fitness;
 			int n = (int) (fitness * 100);
@@ -147,6 +176,7 @@ public class Population extends Thread {
 		}
 
 		// debug
+		parent.pushStyle();
 		for (int d = 0; d < matingPollCandidates.size(); d++) {
 			Rocket r = matingPollCandidates.get(d);
 			double fitness = r.fitness;			
@@ -162,27 +192,27 @@ public class Population extends Thread {
 					y = 1080;
 				parent.text(d, x + (x >= parent.width/2 ? -10 : 0), y + 10);
 
-				System.out.println(d + ". " + r.pos + " - " + r.fitness);
+				System.out.println(d + ". " + r.pos + " - " + r.fitness + " :: " + r.finishTime);
 			}
 		}
-		System.out.println("done");
+		parent.popStyle();
 	}
 	
 	// Selects appropriate genes for child
 	public void selection() {
-		System.out.println("Selection called");
-		try {
-			throw new Exception();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		System.out.println("Selection called");
+//		try {
+//			throw new Exception();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 		
 		Rocket[] newRockets = new Rocket[rockets.length];
 		if (matingpool.size() == 0 )
 			System.out.println("chuj");
 		int mSz = matingpool.size();
 
-		int childrenPopulationSz = (int) (rockets.length * .9f),
+		int childrenPopulationSz = (int) (rockets.length * 1.0f),
 				//newPopulationSz = rockets.length - childrenPopulationSz,
 				i = 0;
 
@@ -193,14 +223,14 @@ public class Population extends Thread {
 			Rocket parentB = matingpool.get((int) parent.random(mSz));
 
 			// Creates child by using crossover function
-			DNA child = parentA.dna.crossover(parentB.dna, parentA.fitness > parentB.fitness);
+			DNA child = parentA.getDna().crossover(parentB.getDna(), parentA.fitness > parentB.fitness);
 			child.mutation();
 			// Creates new rocket with child's DNA
-			newRockets[i] = new Rocket(child, populationFitnessFunction);
+			newRockets[i] = new Rocket(this, child);
 		}
 		//i--;
 		for (; i < rockets.length; i++) {
-			newRockets[i] = new Rocket(new Color(255, 0, 0), populationFitnessFunction);
+			newRockets[i] = new Rocket(this);
 		}
 
 		for (Rocket r : newRockets) {
@@ -219,9 +249,9 @@ public class Population extends Thread {
 		boolean allDone = true;
 		
 		for (Rocket r : rockets) {
-			r.update(success, this, targetPos );
+			r.update( );
 			
-			if (!r.crashed && !r.finished) { // if not crashed and not finished
+			if (!r.hasCrashed() && !r.finished) { // if not crashed and not finished
 				if (allDone)
 					allDone = false;
 			}
@@ -233,10 +263,9 @@ public class Population extends Thread {
 	}
 
 	public void draw() {
-		parent.pushStyle();parent.noStroke();
-		parent.fill(fill.getRed(), fill.getGreen(), fill.getGreen(), 150);
-		parent.rectMode(PApplet.CENTER);
-		
+		parent.pushStyle();
+		parent.strokeWeight(10);
+		parent.stroke(getFill().getRGB(), getFill().getAlpha());
 		for (int i = 0; i < rockets.length; i++) {
 			rockets[i].show();
 		}
@@ -251,11 +280,32 @@ public class Population extends Thread {
 		return allDone;
 	}
 
-	public synchronized void setToEvaluate() {
-		this.toEvaluate = true;
+	public boolean hasSuccess() {
+		return success;
 	}
 
-	public synchronized void setToSelect() {
-		this.toSelect = true;
+	public void setSuccess() {
+		if (!success)
+			success = true;
+	}
+
+	public CalculateFitness getPopulationFitnessFunction() {
+		return populationFitnessFunction;
+	}
+
+	public void setPopulationFitnessFunction(CalculateFitness populationFitnessFunction) {
+		this.populationFitnessFunction = populationFitnessFunction;
+	}
+
+	public Color getFill() {
+		return fill;
+	}
+
+	public void setFill(Color fill) {
+		this.fill = fill;
+	}
+	
+	public void setWait(boolean wait) {
+		this.wait = wait;
 	}
 }

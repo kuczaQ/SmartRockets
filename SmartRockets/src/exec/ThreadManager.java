@@ -2,7 +2,6 @@ package exec;
 
 import java.util.ArrayList;
 
-import objects.Population;
 import objects.Rocket;
 
 public class ThreadManager {
@@ -22,7 +21,7 @@ public class ThreadManager {
 				//while (done); // wait
 				startTime = System.nanoTime();
 				for (Rocket r : toProcess) {
-					r.update(population.allDone(), population, population.targetPos);
+					r.update();
 					done = true;
 				}
 				endTime = System.nanoTime() - startTime;
