@@ -21,7 +21,7 @@ public class Population extends Thread {
 
 	boolean allDone = false;
 	public boolean passedTheObstacle = false;
-	public PVector targetPos = null;
+	//public PVector targetPos = null;
 	private CalculateFitness populationFitnessFunction;
 	private Color fill;
 	
@@ -155,6 +155,8 @@ public class Population extends Thread {
 		int sz = points < matingPollCandidates.size() ? points : matingPollCandidates.size();
 
 		for (int i = 0; i < sz; i++) {
+			Rocket r = matingPollCandidates.get(i);
+			System.out.println(i + ". " + " - " + r.fitness + " :: " + r.finishTime);
 			threshhold += matingPollCandidates.get(i).fitness;
 		}
 		threshhold /= sz;
@@ -163,7 +165,7 @@ public class Population extends Thread {
 			System.out.println();
 		
 		System.out.println(fill.toString()
-				+ "\nThresh:" + threshhold);
+				+ "\n\nThresh:" + threshhold);
 		for (Rocket r : matingPollCandidates) {
 			double fitness = r.fitness;
 			int n = (int) (fitness * 100);
@@ -196,6 +198,7 @@ public class Population extends Thread {
 			}
 		}
 		parent.popStyle();
+		System.out.println("\n\n\n");
 	}
 	
 	// Selects appropriate genes for child

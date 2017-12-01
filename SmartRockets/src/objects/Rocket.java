@@ -74,8 +74,7 @@ public class Rocket {
 				this.finished = true;
 				this.pos = target.copy();
 				finishTime = SmartRockets.getCounter();
-				finished = true;
-				population.targetPos = this.pos.copy();
+				//population.targetPos = this.pos.copy();
 				population.setSuccess();
 			}
 			

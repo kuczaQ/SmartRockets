@@ -8,7 +8,7 @@ import processing.core.PApplet;
 import processing.core.PVector;
 
 public class DNA {
-	private static final double MUTATION_CHANCE = 0.01;
+	public static double mutationChance = 0.01d;
 	static PApplet parent;
 	static final float MAX_FORCE = 0.2f;
 	
@@ -90,7 +90,7 @@ public class DNA {
 	public void mutation() {
 		for (int i = 0; i < this.genes.size(); i++) {
 			// if random number less than 0.01, new gene is then random vector
-			if (parent.random(1) < MUTATION_CHANCE) {
+			if (parent.random(1) < mutationChance) {
 				/*PVector og = genes.get(i);
 				og.x = og.x + parent.random(-15, 15);
 				og.y = og.y + parent.random(-15, 15);
@@ -102,6 +102,14 @@ public class DNA {
 
 	public static void setParent(PApplet p) {
 		parent = p;
+	}
+
+	public static double getMutationChance() {
+		return mutationChance;
+	}
+	
+	public static void changeMutationChance(double val) {
+		DNA.mutationChance += val;
 	}
 }
 

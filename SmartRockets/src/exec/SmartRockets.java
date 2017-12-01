@@ -11,7 +11,7 @@ import processing.core.PVector;
 public class SmartRockets extends PApplet {
 	public static final int LIFESPAN = 3600;
 	public static final int TARGET_R = 10;
-	public static final int POPULATION_SIZE = 1000;
+	public static final int POPULATION_SIZE = 800;
 	public static final int ROCKET_ALPHA = 200;
 	static final float FPS = 60;
 	
@@ -39,12 +39,12 @@ public class SmartRockets extends PApplet {
 				throw new RuntimeException("Target was not set! Use setTarget().");
 
 			if ((!r.finished || r.hasCrashed()) && r.getPopulation().hasSuccess()) {
-				return 0;
+				return 0.00001d;
 			}
 			
 			// if at least one rocket has passed the obstacle
 			if (r.getPopulation().passedTheObstacle && r.passedObstacleTime == null)
-				return 0;
+				return 0.00001d;
 			
 			//		else if (!success && crashedOnObstacle) {
 			//			fitness = 0;
@@ -65,7 +65,8 @@ public class SmartRockets extends PApplet {
 				timeBonus = 1;
 
 			fitness *= timeBonus;
-
+			if (fitness == 0)
+				System.out.println("nom, tak");
 			return fitness;
 		}
 	}, fitnessPop2 = new CalculateFitness() {
@@ -88,8 +89,8 @@ public class SmartRockets extends PApplet {
 	}
 	
 	public void settings() {
-		size(600, 600);
-		fullScreen();
+		//size(1600, 720);
+		fullScreen(2);
 		
 	}
 
@@ -113,9 +114,8 @@ public class SmartRockets extends PApplet {
 		populationManager = new PopulationManager();
 		populationManager.addPopulation( new Population(POPULATION_SIZE, fitnessPop1, new Color(0, 0, 0, ROCKET_ALPHA)));
 		
-		for (int a = 0; a < 5; a ++)
-		populationManager.addPopulation( new Population(POPULATION_SIZE, fitnessPop2, 
-				new Color((137 * (a + 1)) % 250, (89 * (a + 1)) % 250, (354 * (a + 1)) % 250, ROCKET_ALPHA)));
+		for (int a = 0; a < 8; a ++)
+			populationManager.addPopulation( new Population(POPULATION_SIZE, fitnessPop2, new Color((137 * (a + 1)) % 250, (89 * (a + 1)) % 250, (354 * (a + 1)) % 250, ROCKET_ALPHA)));
 		populationManager.start();
 		textSize(20);
 	}
@@ -125,12 +125,12 @@ public class SmartRockets extends PApplet {
 		
 
 		
-		//text(fitnessDebug, 15, 70);
+		
 		if (run) {
 			background(220);
 			fill(130);
 			rect(rx, ry, rw, rh);
-
+			text(Double.toString(DNA.getMutationChance()), 15, 70);
 			// Renders target
 			fill(218, 64, 12);
 			stroke(1);
@@ -145,7 +145,7 @@ public class SmartRockets extends PApplet {
 			
 			//counter++;
 			if (counter++ == LIFESPAN || populationManager.allDone()) {
-				populationManager.setWait(true);
+				//populationManager.setWait(true);
 				if (!auto) {
 					run = false;
 					populationManager.evaluate();
@@ -192,6 +192,15 @@ public class SmartRockets extends PApplet {
 		if (key == 'a') {
 			auto = !auto;
 		}
+		
+		if (keyCode == UP)
+			DNA.changeMutationChance(0.0001f);
+		if (keyCode == DOWN)
+			DNA.changeMutationChance(-0.0001f);
+		if (keyCode == LEFT)
+			DNA.changeMutationChance(-0.01f);
+		if (keyCode == RIGHT)
+			DNA.changeMutationChance(0.01f);
 		
 	}
 	

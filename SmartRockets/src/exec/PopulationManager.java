@@ -28,7 +28,7 @@ public class PopulationManager {
 	}
 	
 	public void continueWork() {
-		setWait(false);
+		//setWait(false);
 		for (Population p : populations)
 			p.continueWork();
 	}
