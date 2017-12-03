@@ -107,6 +107,23 @@ public class Rocket {
 				this.pos.add(this.vel);
 				this.acc.mult(0);
 				this.vel.limit(SPEED_LIMIT);
+				
+				if (pos.x > parent.width) {
+					pos.x = parent.width;
+					this.setCrashed(true);
+				}
+				if (pos.x < 0) {
+					pos.x = 0;
+					this.setCrashed(true);
+				}
+				if (pos.y > parent.height) {
+					pos.y = parent.height;
+					this.setCrashed(true);
+				}
+				if (pos.y < 0) {
+					pos.y = 0;
+					this.setCrashed(true);
+				}
 			}
 
 
@@ -127,10 +144,64 @@ public class Rocket {
 //		point = pos.sub(point);
 		
 		
-		parent.point(pos.x, pos.y);
+		drawCircle((int) pos.x, (int) pos.y, 5);
+		
+		//parent.point(pos.x, pos.y);
 
 	}
 
+	public void drawCircle(int x0, int y0, int radius) {
+    	if (radius <= 0)
+    		return;
+    	
+        int x = radius-1;
+        int y = 0;
+        int dx = 1;
+        int dy = 1;
+        int err = dx - (radius << 1);
+
+        while (x >= y) {
+            putpixel(x0 + x, y0 + y);
+            putpixel(x0 + y, y0 + x);
+            putpixel(x0 - y, y0 + x);
+            putpixel(x0 - x, y0 + y);
+            putpixel(x0 - x, y0 - y);
+            putpixel(x0 - y, y0 - x);
+            putpixel(x0 + y, y0 - x);
+            putpixel(x0 + x, y0 - y);
+
+            if (err <= 0)
+            {
+                y++;
+                err += dy;
+                dy += 2;
+            }
+            if (err > 0)
+            {
+                x--;
+                dx += 2;
+                err += dx - (radius << 1);
+            }
+        }
+        
+        drawCircle(x0, y0, radius - 1);
+    }
+
+	private void putpixel(int x, int y) {
+		int loc = x + y * parent.width;
+			
+//		int r = 0;
+//		int g = 0;
+//		int b = 0;
+//		int a = 155;
+
+		try {
+		parent.pixels[loc] = population.getFill().getRGB();
+		} catch (ArrayIndexOutOfBoundsException e) {
+
+		}
+	}
+	
 	public static void setParent(PApplet p) {
 		parent = p;
 	}	

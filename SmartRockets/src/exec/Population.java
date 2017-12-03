@@ -8,10 +8,9 @@ import objects.CalculateFitness;
 import objects.DNA;
 import objects.Rocket;
 import processing.core.PApplet;
-import processing.core.PVector;
 
 public class Population extends Thread {
-	private static final long TARGET_WAIT_TIME = (long) (1000000000d / SmartRockets.FPS); // nanoseconds
+	//private static final long TARGET_WAIT_TIME = (long) (1000000000d / SmartRockets.FPS); // nanoseconds
 
 	static PApplet parent;
 	
@@ -248,6 +247,45 @@ public class Population extends Thread {
 		allDone = false;
 	}
 
+	public void doEvaluation() {
+		abstract class Worker extends Thread {
+			Rocket[] toProcess;
+			
+			public Worker(Rocket... r) {
+				toProcess = r;
+			}
+			
+			@Override
+			abstract public void run();
+		}
+		
+		int threadCount = Runtime.getRuntime().availableProcessors();
+		Thread[] workers = new Thread[threadCount];
+		
+		int chunkSize = rockets.length / threadCount, counter = 0;
+		ArrayList<Rocket> buffer = new ArrayList<Rocket>(chunkSize);
+		int sz = 0;
+		
+		for (int a = 0; a < threadCount; a++) {
+			buffer.clear();
+			counter++;
+			if (a != threadCount - 1) 
+				for (; counter % (chunkSize + 1) != 0; counter++) 
+					buffer.add(rockets[counter - 1]);
+
+			else 
+				for (; counter <= rockets.length; counter++) 
+					buffer.add(rockets[counter - 1]);	
+			
+			Rocket[] res = new Rocket[buffer.size()];
+			
+			for (int index = 0; index < buffer.size(); index++)
+				res[index] = buffer.get(index);
+			
+			sz += res.length;
+		}
+	}
+	
 	public void update() {
 		boolean allDone = true;
 		
@@ -266,13 +304,13 @@ public class Population extends Thread {
 	}
 
 	public void draw() {
-		parent.pushStyle();
-		parent.strokeWeight(10);
-		parent.stroke(getFill().getRGB(), getFill().getAlpha());
+//		parent.pushStyle();
+//		parent.strokeWeight(10);
+//		parent.stroke(getFill().getRGB(), getFill().getAlpha());
 		for (int i = 0; i < rockets.length; i++) {
 			rockets[i].show();
 		}
-		parent.popStyle();
+		//parent.popStyle();
 	}
 	
 	public static void setParent(PApplet p) {

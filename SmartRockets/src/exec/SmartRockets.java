@@ -10,8 +10,8 @@ import processing.core.PVector;
 
 public class SmartRockets extends PApplet {
 	public static final int LIFESPAN = 3600;
-	public static final int TARGET_R = 10;
-	public static final int POPULATION_SIZE = 800;
+	public static final int TARGET_R = 30;
+	public static final int POPULATION_SIZE = 1000;
 	public static final int ROCKET_ALPHA = 200;
 	static final float FPS = 60;
 	
@@ -90,7 +90,7 @@ public class SmartRockets extends PApplet {
 	
 	public void settings() {
 		//size(1600, 720);
-		fullScreen(2);
+		fullScreen();
 		
 	}
 
@@ -114,7 +114,7 @@ public class SmartRockets extends PApplet {
 		populationManager = new PopulationManager();
 		populationManager.addPopulation( new Population(POPULATION_SIZE, fitnessPop1, new Color(0, 0, 0, ROCKET_ALPHA)));
 		
-		for (int a = 0; a < 8; a ++)
+		for (int a = 0; a < 1; a ++)
 			populationManager.addPopulation( new Population(POPULATION_SIZE, fitnessPop2, new Color((137 * (a + 1)) % 250, (89 * (a + 1)) % 250, (354 * (a + 1)) % 250, ROCKET_ALPHA)));
 		populationManager.start();
 		textSize(20);
@@ -140,7 +140,9 @@ public class SmartRockets extends PApplet {
 			
 			
 			//population.update();
+			loadPixels();
 			populationManager.draw();
+			updatePixels();
 			populationManager.continueWork();
 			
 			//counter++;

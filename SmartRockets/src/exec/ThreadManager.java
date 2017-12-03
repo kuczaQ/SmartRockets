@@ -83,7 +83,7 @@ public class ThreadManager {
 			for (int index = 0; index < buffer.size(); index++)
 				res[index] = buffer.get(index);
 			
-			threads[a] = new Worker( res);
+			threads[a] = new Worker(res);
 		}
 	}
 	
