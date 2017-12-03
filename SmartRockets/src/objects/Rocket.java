@@ -1,31 +1,26 @@
 package objects;
 
-import java.awt.Color;
-import java.util.ArrayList;
-
 import exec.Population;
 import exec.SmartRockets;
 import processing.core.PApplet;
-import processing.core.PVector;
 
 public class Rocket {
 	private static final int SPEED_LIMIT = 3;
-	static PVector target;
-	public static PApplet parent;
+	private static PApplet parent;
+	private static Vector2D target;
 
 	private DNA dna;
 	private CalculateFitness calcFitness;
 	private Population population; // population to which the rocket belongs to
 
-	public PVector pos = new PVector(parent.width/2, parent.height - 20),
-			acc = new PVector(),
-			vel = new PVector();
+	private Vector2D pos = new Vector2D(parent.width/2, parent.height - 20),
+			acc = new Vector2D(),
+			vel = new Vector2D();
 
-	public boolean finished = false;
-	private boolean crashed = false;
-	boolean crashedOnObstacle = false;
-	public Double fitness = 1d;
-	public Integer finishTime, passedObstacleTime;
+	private boolean crashed = false, finished = false, crashedOnObstacle = false;
+	private Double fitness = 1d;
+	private Integer finishTime, passedObstacleTime;
+	private int radius = 5;
 
 
 
@@ -37,7 +32,6 @@ public class Rocket {
 
 	public Rocket(Rocket r) {
 		this.setDna(r.getDna().copy());
-		//dna.fill = c;
 	}
 
 	public Rocket(Population p, DNA dna) {
@@ -46,7 +40,7 @@ public class Rocket {
 		this.setDna(dna);
 	}
 
-	public void applyForce(PVector force) {
+	public void applyForce(Vector2D force) {
 		this.acc.add(force);
 	}
 
@@ -54,26 +48,25 @@ public class Rocket {
 		if (calcFitness == null)
 			throw new NullPointerException("calcFitness == null");
 
-		fitness = calcFitness.calc(this);
+		setFitness(calcFitness.calc(this));
 	}
 
-	// Updates state of rocket
 	public void update() {
 
-		if (!this.finished && !hasCrashed()) {
-			float d = PApplet.dist(this.pos.x, this.pos.y, target.x, target.y);
+		if (!this.hasFinished() && !hasCrashed()) {
+			float d = PApplet.dist(this.getPos().x, this.getPos().y, target.x, target.y);
 
-			if (pos.y <= SmartRockets.ry) {
-				if (passedObstacleTime == null) 
-					passedObstacleTime = SmartRockets.getCounter();
+			if (getPos().y <= SmartRockets.ry) {
+				if (getPassedObstacleTime() == null) 
+					setPassedObstacleTime(SmartRockets.getCounter());
 				if (!population.passedTheObstacle)
 					population.passedTheObstacle = true;
 			}
 
-			if (d < SmartRockets.TARGET_R) {
-				this.finished = true;
-				this.pos = target.copy();
-				finishTime = SmartRockets.getCounter();
+			if (d < SmartRockets.TARGET_R/2) {
+				this.setFinished(true);
+				//this.pos = target.copy();
+				setFinishTime(SmartRockets.getCounter());
 				//population.targetPos = this.pos.copy();
 				population.setSuccess();
 			}
@@ -81,19 +74,19 @@ public class Rocket {
 			//TODO generic object array
 			
 			// Rocket hit the barrier
-			if (this.pos.x > SmartRockets.rx && this.pos.x < SmartRockets.rx + SmartRockets.rw 
-					&& this.pos.y > SmartRockets.ry && this.pos.y < SmartRockets.ry + SmartRockets.rh) {
+			if (this.getPos().x > SmartRockets.rx && this.getPos().x < SmartRockets.rx + SmartRockets.rw 
+					&& this.getPos().y > SmartRockets.ry && this.getPos().y < SmartRockets.ry + SmartRockets.rh) {
 
 				this.setCrashed(true);
-				crashedOnObstacle = true;
+				setCrashedOnObstacle(true);
 			}
 
 			// Rocket has hit left or right of window
-			if (this.pos.x > parent.width || this.pos.x < 0) {
+			if (this.getPos().x > parent.width || this.getPos().x < 0) {
 				this.setCrashed(true);
 			}
 			// Rocket has hit top or bottom of window
-			if (this.pos.y > parent.height || this.pos.y < 0) {
+			if (this.getPos().y > parent.height || this.getPos().y < 0) {
 				this.setCrashed(true);
 			}
 
@@ -102,26 +95,26 @@ public class Rocket {
 			this.applyForce(this.getDna().genes.get(SmartRockets.getCounter() >= getDna().genes.size() ? getDna().genes.size() - 1 : SmartRockets.getCounter()));
 
 			// if rocket has not got to goal and not crashed then update physics engine
-			if (!this.finished && !this.hasCrashed()) {
+			if (!this.hasFinished() && !this.hasCrashed()) {
 				this.vel.add(this.acc);
-				this.pos.add(this.vel);
+				this.getPos().add(this.vel);
 				this.acc.mult(0);
 				this.vel.limit(SPEED_LIMIT);
 				
-				if (pos.x > parent.width) {
-					pos.x = parent.width;
+				if (getPos().x > parent.width) {
+					getPos().x = parent.width;
 					this.setCrashed(true);
 				}
-				if (pos.x < 0) {
-					pos.x = 0;
+				if (getPos().x < 0) {
+					getPos().x = 0;
 					this.setCrashed(true);
 				}
-				if (pos.y > parent.height) {
-					pos.y = parent.height;
+				if (getPos().y > parent.height) {
+					getPos().y = parent.height;
 					this.setCrashed(true);
 				}
-				if (pos.y < 0) {
-					pos.y = 0;
+				if (getPos().y < 0) {
+					getPos().y = 0;
 					this.setCrashed(true);
 				}
 			}
@@ -131,74 +124,52 @@ public class Rocket {
 	}
 
 	public void show() {
-		// Push and pop allow's rotating and translation not to affect other objects
-//		parent.pushMatrix();	
-//		parent.translate(this.pos.x, this.pos.y);
-//		parent.rotate(this.vel.heading());
-//		parent.rect(0, 0, 25, 5);	
-//		parent.popMatrix();
-		
-//		PVector point = vel.copy();
-//		
-//		point = point.mult(5);
-//		point = pos.sub(point);
-		
-		
-		drawCircle((int) pos.x, (int) pos.y, 5);
-		
-		//parent.point(pos.x, pos.y);
-
+		drawCircle((int) getPos().x, (int) getPos().y, radius);
 	}
 
 	public void drawCircle(int x0, int y0, int radius) {
-    	if (radius <= 0)
-    		return;
-    	
-        int x = radius-1;
-        int y = 0;
-        int dx = 1;
-        int dy = 1;
-        int err = dx - (radius << 1);
+		int endPoint = radius - 3,
+			x, y, dx, dy, err;
+		
+		while (radius != endPoint) {
+			x = radius - 1;
+			y = 0;
+			dx = 1;
+			dy = 1;
+			err = dx - (radius << 1);
 
-        while (x >= y) {
-            putpixel(x0 + x, y0 + y);
-            putpixel(x0 + y, y0 + x);
-            putpixel(x0 - y, y0 + x);
-            putpixel(x0 - x, y0 + y);
-            putpixel(x0 - x, y0 - y);
-            putpixel(x0 - y, y0 - x);
-            putpixel(x0 + y, y0 - x);
-            putpixel(x0 + x, y0 - y);
+			while (x >= y) {
+				putpixel(x0 + x, y0 + y);
+				putpixel(x0 + y, y0 + x);
+				putpixel(x0 - y, y0 + x);
+				putpixel(x0 - x, y0 + y);
+				putpixel(x0 - x, y0 - y);
+				putpixel(x0 - y, y0 - x);
+				putpixel(x0 + y, y0 - x);
+				putpixel(x0 + x, y0 - y);
 
-            if (err <= 0)
-            {
-                y++;
-                err += dy;
-                dy += 2;
-            }
-            if (err > 0)
-            {
-                x--;
-                dx += 2;
-                err += dx - (radius << 1);
-            }
-        }
-        
-        drawCircle(x0, y0, radius - 1);
+				if (err <= 0)
+				{
+					y++;
+					err += dy;
+					dy += 2;
+				}
+				if (err > 0)
+				{
+					x--;
+					dx += 2;
+					err += dx - (radius << 1);
+				}
+			}
+			radius--;
+		}
     }
 
 	private void putpixel(int x, int y) {
-		int loc = x + y * parent.width;
-			
-//		int r = 0;
-//		int g = 0;
-//		int b = 0;
-//		int a = 155;
-
 		try {
-		parent.pixels[loc] = population.getFill().getRGB();
+			parent.pixels[x + y * parent.width] =  population.getFill().getRGB();
 		} catch (ArrayIndexOutOfBoundsException e) {
-
+			//if a part of a circle is outside of the canvas -> do nothing
 		}
 	}
 	
@@ -206,7 +177,7 @@ public class Rocket {
 		parent = p;
 	}	
 
-	public static synchronized void setTarget(PVector target) {
+	public static void setTarget(Vector2D target) {
 		Rocket.target = target;
 	}
 
@@ -228,6 +199,54 @@ public class Rocket {
 
 	public void setDna(DNA dna) {
 		this.dna = dna;
+	}
+
+	public boolean hasCrashedOnObstacle() {
+		return crashedOnObstacle;
+	}
+
+	private void setCrashedOnObstacle(boolean crashedOnObstacle) {
+		this.crashedOnObstacle = crashedOnObstacle;
+	}
+
+	public Double getFitness() {
+		return fitness;
+	}
+
+	public void setFitness(Double fitness) {
+		this.fitness = fitness;
+	}
+
+	public Integer getFinishTime() {
+		return finishTime;
+	}
+
+	private void setFinishTime(Integer finishTime) {
+		this.finishTime = finishTime;
+	}
+
+	public Integer getPassedObstacleTime() {
+		return passedObstacleTime;
+	}
+
+	private void setPassedObstacleTime(Integer passedObstacleTime) {
+		this.passedObstacleTime = passedObstacleTime;
+	}
+
+	public boolean hasFinished() {
+		return finished;
+	}
+
+	private void setFinished(boolean finished) {
+		this.finished = finished;
+	}
+
+	public Vector2D getPos() {
+		return pos;
+	}
+
+	public static PApplet getParent() {
+		return parent;
 	}
 }
 

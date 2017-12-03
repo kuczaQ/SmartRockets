@@ -30,7 +30,8 @@ public class PopulationManager {
 	public void continueWork() {
 		//setWait(false);
 		for (Population p : populations)
-			p.continueWork();
+			if (!p.allDone())
+				p.continueWork();
 	}
 	
 	public void setToStop() {

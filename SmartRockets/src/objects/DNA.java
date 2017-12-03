@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 import exec.SmartRockets;
 import processing.core.PApplet;
-import processing.core.PVector;
+//import processing.core.PVector;
 
 public class DNA {
 	public static double mutationChance = 0.01d;
@@ -13,43 +13,43 @@ public class DNA {
 	static final float MAX_FORCE = 0.2f;
 	
 	Color fill;
-	ArrayList<PVector> genes;
+	ArrayList<Vector2D> genes;
 	
 	
 	public DNA(Color color) {
 		this.fill = color;
-		this.genes = new ArrayList<PVector>();
+		this.genes = new ArrayList<Vector2D>();
 		
 	    for (int i = 0; i < SmartRockets.LIFESPAN; i++) {
 	      // Gives random vectors and sets maximum force of vector to be applied to a rocket
-	      genes.add(PVector.random2D().setMag(MAX_FORCE));
+	      genes.add(Vector2D.random2D().setMag(MAX_FORCE));
 	    }
 	}
 	
-	public DNA(ArrayList<PVector> p) {
+	public DNA(ArrayList<Vector2D> p) {
 		this.genes = p;
 	}
 	
-	public DNA(Color color, ArrayList<PVector> genes) {
+	public DNA(Color color, ArrayList<Vector2D> genes) {
 		this.fill = color;
 		this.genes = genes;
 	}
 	
 	public DNA copy() {
-		ArrayList<PVector> genesNew = new ArrayList<PVector>();
+		ArrayList<Vector2D> genesNew = new ArrayList<Vector2D>();
 		
-		for (PVector p : genes)
+		for (Vector2D p : genes)
 			genesNew.add(p.copy());
 		
 		return new DNA(new Color(fill.getRGB()), genesNew);
 	}
 
 	public static DNA getRandomDNA() {
-		ArrayList<PVector> genes = new ArrayList<PVector>();
+		ArrayList<Vector2D> genes = new ArrayList<Vector2D>();
 		
 	    for (int i = 0; i < SmartRockets.LIFESPAN; i++) {
 	      // Gives random vectors and sets maximum force of vector to be applied to a rocket
-	      genes.add(PVector.random2D().setMag(MAX_FORCE));
+	      genes.add(Vector2D.random2D().setMag(MAX_FORCE));
 	    }
 	    
 	    return new DNA(genes);
@@ -57,7 +57,7 @@ public class DNA {
 	
 	// Performs a crossover with another member of the species
 	public DNA crossover(DNA partner, boolean leftHasBiggerFitness) {
-		ArrayList<PVector> newGenes = new ArrayList<PVector>();
+		ArrayList<Vector2D> newGenes = new ArrayList<Vector2D>();
 		// Picks random midpoint
 		float mid = PApplet.floor(parent.random(this.genes.size()));
 		
@@ -91,11 +91,11 @@ public class DNA {
 		for (int i = 0; i < this.genes.size(); i++) {
 			// if random number less than 0.01, new gene is then random vector
 			if (parent.random(1) < mutationChance) {
-				/*PVector og = genes.get(i);
+				/*Vector og = genes.get(i);
 				og.x = og.x + parent.random(-15, 15);
 				og.y = og.y + parent.random(-15, 15);
 				*/
-				this.genes.set(i, PVector.random2D().setMag(MAX_FORCE));
+				this.genes.set(i, Vector2D.random2D().setMag(MAX_FORCE));
 			}
 		}
 	}

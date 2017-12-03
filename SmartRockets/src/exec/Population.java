@@ -42,8 +42,7 @@ public class Population extends Thread {
 
 	@Override
 	public void run() {
-		long startTime, endTime, time;
-		
+		// long startTime, endTime, time;
 		while (!toStop) {
 			//			if (wait) {
 			//				try {
@@ -101,72 +100,50 @@ public class Population extends Thread {
 //	}
 	
 	public void evaluate() {
-//		System.out.println("Evaluate called");
-//		try {
-//			throw new Exception();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		
 		this.matingpool.clear();
-		
 		Double maxfit = 0d;
-		// Iterate through all rockets and calcultes their fitness
-			for (int i = 0; i < rockets.length; i++) {
-				// Calculates fitness
-				rockets[i].calcFitness();
-				// If current fitness is greater than max, then make max eqaul to current
-				if (rockets[i].fitness > maxfit) {
-					maxfit = rockets[i].fitness;
-				}
-			}
+		ArrayList<Rocket[]> arrays = Worker.splitArray(Runtime.getRuntime().availableProcessors(), rockets);
+		//TODO finish this fucking shit
 		
-
-		ArrayList<Rocket> debugR = new ArrayList<Rocket>();
+		// Iterate through all rockets and calcultes their fitness
+		for (int i = 0; i < rockets.length; i++) {
+			// Calculates fitness
+			rockets[i].calcFitness();
+			// If current fitness is greater than max, then make max eqaul to current
+			if (rockets[i].getFitness() > maxfit) {
+				maxfit = rockets[i].getFitness();
+			}
+		}
+		
 		ArrayList<Rocket> matingPollCandidates = new ArrayList<Rocket>();
-
-//		for (int i = 0; i < rockets.length; i++) {
-////			System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime 
-////					+ " :: " + rockets[i].passedObstacleTime);
-//			if (rockets[i].fitness != 0) {
-//				debugR.add(rockets[i]);
-//				
-////				rockets[i].fitness /= maxfit;
-////				rockets[i].fitness *= rockets[i].fitness;
-//			}
-//		}
 				
 		// Normalises fitnesses
-
 		for (int i = 0; i < rockets.length; i++) {
-			if (rockets[i].fitness != 0) {
-				debugR.add(rockets[i]);
+			if (rockets[i].getFitness() != 0) {
+				//debugR.add(rockets[i]);
 				matingPollCandidates.add(rockets[i]);
 				//System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime);
-				rockets[i].fitness /= maxfit;
-				rockets[i].fitness *= rockets[i].fitness;
+				rockets[i].setFitness(rockets[i].getFitness() / maxfit);
+				rockets[i].setFitness(rockets[i].getFitness() * rockets[i].getFitness());
 			}
 		}
 		
 		double threshhold = 0;
-		Collections.sort(matingPollCandidates, (r1, r2) -> (r2.fitness).compareTo(r1.fitness));
+		Collections.sort(matingPollCandidates, (r1, r2) -> (r2.getFitness()).compareTo(r1.getFitness()));
 		int points = 10;
 		int sz = points < matingPollCandidates.size() ? points : matingPollCandidates.size();
 
 		for (int i = 0; i < sz; i++) {
 			Rocket r = matingPollCandidates.get(i);
-			System.out.println(i + ". " + " - " + r.fitness + " :: " + r.finishTime);
-			threshhold += matingPollCandidates.get(i).fitness;
+			System.out.println(i + ". " + " - " + r.getFitness() + " :: " + r.getFinishTime());
+			threshhold += matingPollCandidates.get(i).getFitness();
 		}
 		threshhold /= sz;
-
-		if (matingPollCandidates.size() == 0)
-			System.out.println();
 		
 		System.out.println(fill.toString()
 				+ "\n\nThresh:" + threshhold);
 		for (Rocket r : matingPollCandidates) {
-			double fitness = r.fitness;
+			double fitness = r.getFitness();
 			int n = (int) (fitness * 100);
 
 			if (fitness >= threshhold) {
@@ -180,64 +157,54 @@ public class Population extends Thread {
 		parent.pushStyle();
 		for (int d = 0; d < matingPollCandidates.size(); d++) {
 			Rocket r = matingPollCandidates.get(d);
-			double fitness = r.fitness;			
+			double fitness = r.getFitness();			
 			if (fitness >= threshhold) {
 				parent.fill(255, 0, 0);
-				parent.ellipse(r.pos.x, r.pos.y, 10, 10);
+				parent.ellipse(r.getPos().x, r.getPos().y, 10, 10);
 				parent.fill(0);
 				parent.textSize(10);
-				int x = (int) Math.abs(r.pos.x), y = (int) Math.abs(r.pos.y);
+				int x = (int) Math.abs(r.getPos().x), y = (int) Math.abs(r.getPos().y);
 				if (x > 2560)
 					x = 2560;
 				if (y > 1080)
 					y = 1080;
 				parent.text(d, x + (x >= parent.width/2 ? -10 : 0), y + 10);
 
-				System.out.println(d + ". " + r.pos + " - " + r.fitness + " :: " + r.finishTime);
+				System.out.println(d + ". " + r.getPos() + " - " + r.getFitness() + " :: " + r.getFinishTime());
 			}
 		}
 		parent.popStyle();
-		System.out.println("\n\n\n");
 	}
 	
 	// Selects appropriate genes for child
 	public void selection() {
-//		System.out.println("Selection called");
-//		try {
-//			throw new Exception();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-		
 		Rocket[] newRockets = new Rocket[rockets.length];
 		if (matingpool.size() == 0 )
 			System.out.println("chuj");
 		int mSz = matingpool.size();
 
-		int childrenPopulationSz = (int) (rockets.length * 1.0f),
-				//newPopulationSz = rockets.length - childrenPopulationSz,
-				i = 0;
+		int childrenPopulationSz = (int) (rockets.length * 1.0f), i = 0;
 
 
-		for (; i < childrenPopulationSz; i++) {
+		for (; i < rockets.length; i++) {
 			// Picks random DNA
 			Rocket parentA = matingpool.get((int) parent.random(mSz));
 			Rocket parentB = matingpool.get((int) parent.random(mSz));
 
 			// Creates child by using crossover function
-			DNA child = parentA.getDna().crossover(parentB.getDna(), parentA.fitness > parentB.fitness);
+			DNA child = parentA.getDna().crossover(parentB.getDna(), parentA.getFitness() > parentB.getFitness());
 			child.mutation();
 			// Creates new rocket with child's DNA
 			newRockets[i] = new Rocket(this, child);
 		}
-		//i--;
-		for (; i < rockets.length; i++) {
-			newRockets[i] = new Rocket(this);
-		}
+//		//i--;
+//		for (; i < rockets.length; i++) {
+//			newRockets[i] = new Rocket(this);
+//		}
 
 		for (Rocket r : newRockets) {
 			if (r == null) {
-				System.out.println("null");
+				throw new RuntimeException("null rocket !!!");
 			}
 		}
 
@@ -292,7 +259,7 @@ public class Population extends Thread {
 		for (Rocket r : rockets) {
 			r.update( );
 			
-			if (!r.hasCrashed() && !r.finished) { // if not crashed and not finished
+			if (!r.hasCrashed() && !r.hasFinished()) { // if not crashed and not finished
 				if (allDone)
 					allDone = false;
 			}
