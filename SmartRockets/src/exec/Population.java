@@ -14,8 +14,8 @@ public class Population extends Thread {
 
 	static PApplet parent;
 	
-	public Rocket[] rockets;
-	ArrayList<Rocket> matingpool = new ArrayList<Rocket>();
+	public Rocket[] rockets, matingpool;
+	//ArrayList<Rocket> matingpool = new ArrayList<Rocket>();
 	private boolean success = false;
 
 	boolean allDone = false;
@@ -24,52 +24,59 @@ public class Population extends Thread {
 	private CalculateFitness populationFitnessFunction;
 	private Color fill;
 	
+	boolean debug = false;
+	
 	//private ThreadManager threadManager;
 	private volatile boolean toStop = false, wait = false; //, toEvaluate = false, toSelect = false;
 	
 
 
 	public Population(int popsize, CalculateFitness calc, Color color) {
-		fill = color;
-		setPopulationFitnessFunction(calc);
-		rockets = new Rocket[popsize];
-		for (int i = 0; i < popsize; i++) {
-			rockets[i] = new Rocket(this);
+		// Class to process the arrays
+		abstract class ProcessArray implements Runnable {
+			ArrayList<Rocket> arr;
+			
+			public ProcessArray(ArrayList<Rocket> arr) {
+				this.arr = arr;
+			}
 		}
 		
-		//threadManager = new ThreadManager(this, threadCount, rockets);
+		fill = color;
+		setPopulationFitnessFunction(calc);
+		
+		int avlCores = Runtime.getRuntime().availableProcessors();
+		ArrayList<ArrayList<Rocket>> initArrays = ThreadPool.getArrayLists(avlCores);/*new ArrayList<ArrayList<Rocket>>();
+		
+		
+		// Initialize the array with as many arrays as there are available cores
+		for (int a = 0; a < avlCores; a++) {
+			initArrays.add(new ArrayList<Rocket>());
+		}
+		
+		Thread[] threads = new Thread[avlCores];*/
+		final int iterations = popsize / avlCores;
+		
+		ThreadPool.getThreadsFromArrays(initArrays, new ProcessArrayListFunction() {
+			@Override
+			public void process(ArrayList<Rocket> arr) {
+				for (int i = 0; i < iterations; i++) {
+					arr.add(new Rocket(Population.this));
+				}
+			}
+		})
+		.start()
+		.join();
+		
+		rockets = ThreadPool.mergeArrays(initArrays);
 	}
 
 	@Override
 	public void run() {
-		// long startTime, endTime, time;
 		while (!toStop) {
-			//			if (wait) {
-			//				try {
-			//					sleep(10000);
-			//				} catch (InterruptedException e) {}
-			//			}
-			//			else {
-			//				startTime = System.nanoTime();
-
 			update();
-			
-			//
-			//				endTime = System.nanoTime() - startTime;
-			//				time = (TARGET_WAIT_TIME - endTime) / 1000000; // nanoseconds * 1,000,000 = milliseconds
-			//				if (time < 0)
-			//					time = 0;
-
 			try {
 				sleep(10000);
 			} catch (InterruptedException e) {}
-
-			//			try {
-			//				sleep(10000);
-			//			} catch (InterruptedException e) {
-			//				// wakes up
-			//			}
-			//			}
 		}
 	}
 	
@@ -82,51 +89,44 @@ public class Population extends Thread {
 	
 	public void setToStop() {
 		toStop = true;
-
-//		threadManager.stop();
-//		try {
-//			threadManager.join();
-//		} catch (InterruptedException e) {
-//			e.printStackTrace();
-//		}
 	}
 	
-//	public void setToUpdate() {
-//		threadManager.setDoneFalse();
-//	}
-//	
-//	public boolean allThreadsDone() {
-//		return threadManager.allDone();
-//	}
-	
 	public void evaluate() {
-		this.matingpool.clear();
+		//this.matingpool.clear();
 		Double maxfit = 0d;
-		ArrayList<Rocket[]> arrays = Worker.splitArray(Runtime.getRuntime().availableProcessors(), rockets);
-		//TODO finish this fucking shit
+		int threadCount = Runtime.getRuntime().availableProcessors();
+		ArrayList<Rocket[]> arrays = ThreadPool.splitArray(threadCount, rockets);
 		
-		// Iterate through all rockets and calcultes their fitness
+		// Iterate through all rockets and calculate their fitness
 		for (int i = 0; i < rockets.length; i++) {
 			// Calculates fitness
 			rockets[i].calcFitness();
-			// If current fitness is greater than max, then make max eqaul to current
+			// If current fitness is greater than max, then make max equal to current
 			if (rockets[i].getFitness() > maxfit) {
 				maxfit = rockets[i].getFitness();
 			}
 		}
 		
 		ArrayList<Rocket> matingPollCandidates = new ArrayList<Rocket>();
-				
-		// Normalises fitnesses
-		for (int i = 0; i < rockets.length; i++) {
-			if (rockets[i].getFitness() != 0) {
-				//debugR.add(rockets[i]);
-				matingPollCandidates.add(rockets[i]);
-				//System.out.println("Fitness: " + rockets[i].fitness + " :: " + rockets[i].finishTime);
-				rockets[i].setFitness(rockets[i].getFitness() / maxfit);
-				rockets[i].setFitness(rockets[i].getFitness() * rockets[i].getFitness());
+		final Double MAX_FITNESS = maxfit;
+		
+		// Normalizes fitness
+		new ThreadPool(arrays, new ProcessingFunction() {
+			@Override
+			public void process(Rocket[] arr) {
+				for (int i = 0; i < arr.length; i++) {
+					if (arr[i].getFitness() != 0) {
+						synchronized(matingPollCandidates) {
+							matingPollCandidates.add(arr[i]);
+						}
+						arr[i].setFitness(arr[i].getFitness() / MAX_FITNESS);
+						arr[i].setFitness(arr[i].getFitness() * arr[i].getFitness());
+					}
+				}
 			}
-		}
+		})
+		.start()
+		.join();
 		
 		double threshhold = 0;
 		Collections.sort(matingPollCandidates, (r1, r2) -> (r2.getFitness()).compareTo(r1.getFitness()));
@@ -135,122 +135,94 @@ public class Population extends Thread {
 
 		for (int i = 0; i < sz; i++) {
 			Rocket r = matingPollCandidates.get(i);
-			System.out.println(i + ". " + " - " + r.getFitness() + " :: " + r.getFinishTime());
+			if (debug)
+				System.out.println(i + ". " + " - " + r.getFitness() + " :: " + r.getFinishTime());
 			threshhold += matingPollCandidates.get(i).getFitness();
 		}
 		threshhold /= sz;
 		
-		System.out.println(fill.toString()
+		if (debug)
+			System.out.println(fill.toString()
 				+ "\n\nThresh:" + threshhold);
-		for (Rocket r : matingPollCandidates) {
-			double fitness = r.getFitness();
-			int n = (int) (fitness * 100);
+		
+		final double THRESH = threshhold;
+		
+		arrays = ThreadPool.splitArray(threadCount, matingPollCandidates);
+		ArrayList<ArrayList<Rocket>> results = ThreadPool.getArrayLists(threadCount);
+		
+		new ThreadPool(arrays, results, new ProcessArrayListWithResultsFunction() {
+			@Override
+			public void process(Rocket[] arr, ArrayList<Rocket> res) {
+				for (Rocket r : arr) {
+					double fitness = r.getFitness();
+					int n = (int) (fitness * 100);
 
-			if (fitness >= threshhold) {
-				for (int j = 0; j < n; j++) {
-					this.matingpool.add(r);
+					if (fitness >= THRESH) {
+						for (int j = 0; j < n; j++) {
+							res.add(r);
+						}
+					}
 				}
 			}
-		}
+		})
+		.start()
+		.join();
 
-		// debug
-		parent.pushStyle();
-		for (int d = 0; d < matingPollCandidates.size(); d++) {
-			Rocket r = matingPollCandidates.get(d);
-			double fitness = r.getFitness();			
-			if (fitness >= threshhold) {
-				parent.fill(255, 0, 0);
-				parent.ellipse(r.getPos().x, r.getPos().y, 10, 10);
-				parent.fill(0);
-				parent.textSize(10);
-				int x = (int) Math.abs(r.getPos().x), y = (int) Math.abs(r.getPos().y);
-				if (x > 2560)
-					x = 2560;
-				if (y > 1080)
-					y = 1080;
-				parent.text(d, x + (x >= parent.width/2 ? -10 : 0), y + 10);
+		this.matingpool = ThreadPool.mergeArrays(results);
+		
+		if (debug) { // DEBUG
+			parent.pushStyle();
+			for (int d = 0; d < matingPollCandidates.size(); d++) {
+				Rocket r = matingPollCandidates.get(d);
+				double fitness = r.getFitness();			
+				if (fitness >= threshhold) {
+					parent.fill(255, 0, 0);
+					parent.ellipse(r.getPos().x, r.getPos().y, 10, 10);
+					parent.fill(0);
+					parent.textSize(10);
+					int x = (int) Math.abs(r.getPos().x), y = (int) Math.abs(r.getPos().y);
+					if (x > 2560)
+						x = 2560;
+					if (y > 1080)
+						y = 1080;
+					parent.text(d, x + (x >= parent.width/2 ? -10 : 0), y + 10);
 
-				System.out.println(d + ". " + r.getPos() + " - " + r.getFitness() + " :: " + r.getFinishTime());
+					System.out.println(d + ". " + r.getPos() + " - " + r.getFitness() + " :: " + r.getFinishTime());
+				}
 			}
-		}
-		parent.popStyle();
+			parent.popStyle();
+		} // END DEBUG
 	}
 	
-	// Selects appropriate genes for child
 	public void selection() {
-		Rocket[] newRockets = new Rocket[rockets.length];
-		if (matingpool.size() == 0 )
-			System.out.println("chuj");
-		int mSz = matingpool.size();
+		final int avlCores = Runtime.getRuntime().availableProcessors(),
+				iterations = rockets.length / avlCores,
+				mSz = matingpool.length;
+		ArrayList<ArrayList<Rocket>> newRocketsLists = ThreadPool.getArrayLists(avlCores);
 
-		int childrenPopulationSz = (int) (rockets.length * 1.0f), i = 0;
+		
+		ThreadPool.getThreadsFromArrays(newRocketsLists, new ProcessArrayListFunction() {
+			@Override
+			public void process(ArrayList<Rocket> arr) {
+				for (int i = 0; i < iterations; i++) {
+					Rocket parentA = matingpool[(int) parent.random(mSz)];
+					Rocket parentB = matingpool[(int) parent.random(mSz)];
 
-
-		for (; i < rockets.length; i++) {
-			// Picks random DNA
-			Rocket parentA = matingpool.get((int) parent.random(mSz));
-			Rocket parentB = matingpool.get((int) parent.random(mSz));
-
-			// Creates child by using crossover function
-			DNA child = parentA.getDna().crossover(parentB.getDna(), parentA.getFitness() > parentB.getFitness());
-			child.mutation();
-			// Creates new rocket with child's DNA
-			newRockets[i] = new Rocket(this, child);
-		}
-//		//i--;
-//		for (; i < rockets.length; i++) {
-//			newRockets[i] = new Rocket(this);
-//		}
-
-		for (Rocket r : newRockets) {
-			if (r == null) {
-				throw new RuntimeException("null rocket !!!");
+					// Creates child by using crossover function
+					DNA child = parentA.getDna().crossover(parentB.getDna(), parentA.getFitness() > parentB.getFitness());
+					child.mutation();
+					// Creates new rocket with child's DNA
+					arr.add(new Rocket(Population.this, child));
+				}
 			}
-		}
-
+		})
+		.start()
+		.join();
+		
 		// Assign new rockets array to the old array
-		this.rockets = newRockets;
+		this.rockets = ThreadPool.mergeArrays(newRocketsLists);
 		success = false;
 		allDone = false;
-	}
-
-	public void doEvaluation() {
-		abstract class Worker extends Thread {
-			Rocket[] toProcess;
-			
-			public Worker(Rocket... r) {
-				toProcess = r;
-			}
-			
-			@Override
-			abstract public void run();
-		}
-		
-		int threadCount = Runtime.getRuntime().availableProcessors();
-		Thread[] workers = new Thread[threadCount];
-		
-		int chunkSize = rockets.length / threadCount, counter = 0;
-		ArrayList<Rocket> buffer = new ArrayList<Rocket>(chunkSize);
-		int sz = 0;
-		
-		for (int a = 0; a < threadCount; a++) {
-			buffer.clear();
-			counter++;
-			if (a != threadCount - 1) 
-				for (; counter % (chunkSize + 1) != 0; counter++) 
-					buffer.add(rockets[counter - 1]);
-
-			else 
-				for (; counter <= rockets.length; counter++) 
-					buffer.add(rockets[counter - 1]);	
-			
-			Rocket[] res = new Rocket[buffer.size()];
-			
-			for (int index = 0; index < buffer.size(); index++)
-				res[index] = buffer.get(index);
-			
-			sz += res.length;
-		}
 	}
 	
 	public void update() {
@@ -271,13 +243,9 @@ public class Population extends Thread {
 	}
 
 	public void draw() {
-//		parent.pushStyle();
-//		parent.strokeWeight(10);
-//		parent.stroke(getFill().getRGB(), getFill().getAlpha());
 		for (int i = 0; i < rockets.length; i++) {
 			rockets[i].show();
 		}
-		//parent.popStyle();
 	}
 	
 	public static void setParent(PApplet p) {

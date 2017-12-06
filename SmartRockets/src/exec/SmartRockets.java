@@ -21,7 +21,6 @@ public class SmartRockets extends PApplet {
 
 	PopulationManager populationManager;
 	Vector2D target;
-	private boolean run = true;
 	//public static boolean[] toStop = {false, false};
 
 
@@ -30,7 +29,7 @@ public class SmartRockets extends PApplet {
 	public static int rw = 200;
 	public static int rh = 25;
 
-	private volatile boolean auto = true;
+	private volatile boolean auto = true, doneProcessing = true, run = true;
 
 	private CalculateFitness fitnessPop1 = new CalculateFitness() {
 		@Override
@@ -91,7 +90,7 @@ public class SmartRockets extends PApplet {
 	}
 
 	public void settings() {
-		//size(1600, 720);
+		size(400, 800);
 		fullScreen();
 
 	}
@@ -136,7 +135,7 @@ public class SmartRockets extends PApplet {
 
 
 
-		if (run) {
+		if (run && doneProcessing) {
 			background(220);
 			fill(130);
 			rect(rx, ry, rw, rh);
@@ -158,15 +157,25 @@ public class SmartRockets extends PApplet {
 			//counter++;
 			if (counter++ == LIFESPAN || populationManager.allDone()) {
 				//populationManager.setWait(true);
-				if (!auto) {
-					run = false;
-					populationManager.evaluate();
-				} else {
-					populationManager.evaluate();
-					populationManager.selection();
-					counter = 0;
-				}
-
+				doneProcessing = false;
+				Thread exec = new Thread(new Runnable() {
+					
+					@Override
+					public void run() {
+						
+						if (!auto) {
+							run = false;
+							populationManager.evaluate();
+						} else {
+							populationManager.evaluate();
+							populationManager.selection();
+							counter = 0;
+						}
+						
+						doneProcessing = true;
+					}
+				});
+				exec.start();
 			}
 
 			text(counter, 15, 30);
