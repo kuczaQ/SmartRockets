@@ -157,25 +157,48 @@ class ThreadPool {
 	}
 
 	public static Rocket[] mergeArrays(ArrayList<ArrayList<Rocket>> initArrays) {
-		int szSum = 0;
+		int szSum = 0, counterDebug = 0, szZeroDebug = 0, counter = 0;
 		Rocket[] res;
 		
 		// Get the number of all elements
-		for (ArrayList<Rocket> arr : initArrays)
+		for (ArrayList<Rocket> arr : initArrays) {
 			szSum += arr.size();
+			if (arr.size() == 0)
+				szZeroDebug++;
+				
+		}
+		
+		//System.out.println("zero arrays count == " + szZeroDebug);
 
 		// Initialize the rockets array
 		res = new Rocket[szSum];
 
+		
 		// Merge all arrays into one
-		for (int a = 0, counter = 0, index = 0; a < szSum; a++) {
-			if (a % ( initArrays.get(counter).size()) == 0 && a != 0) {
-				counter++;
-				index = 0;
-			}
-			res[a] = initArrays.get(counter).get(index++);
-		}
 
+		for (ArrayList<Rocket> arr : initArrays) {
+			for (Rocket r : arr) {
+				res[counter++] = r;
+			}
+		}
+		
+		//		if (szSum > 0)
+//			for (int a = 0, index = 0; a < szSum; a++) {
+////				if (initArrays.get(counter).size() == 0) {
+////					counter++;
+////					index = 0;
+////				} else 
+//				if (a % initArrays.get(counter).size() == 0 && a != 0) {
+//					do {
+//						counter++;
+//						if (counter >= initArrays.size())
+//							return res;
+//					} while (initArrays.get(counter).size() == 0);
+//					index = 0;
+//				}
+//				counterDebug++;
+//				res[a] = initArrays.get(counter).get(index++);
+//			}
 		return res;
 	}
 

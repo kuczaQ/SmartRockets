@@ -1,5 +1,5 @@
 /**
- * This class is a shameless rip-off of the PVector, only without the z variable for better 2D performance.
+ * This class is a shameless rip-off of the PVector, only without the z variable for better 2D memory performance.
  * Additionally, a lot of functionality is missing.
  * 
  * @see https://github.com/processing/processing/blob/master/core/src/processing/core/PVector.java
@@ -79,7 +79,7 @@ public class Vector2D {
 	}
 
 	static public Vector2D fromAngle(float angle) {
-		return new Vector2D((float)Math.cos(angle),(float)Math.sin(angle));
+		return new Vector2D((float)Math.cos(angle), (float)Math.sin(angle));
 	}
 
 	@Override

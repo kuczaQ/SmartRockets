@@ -10,7 +10,7 @@ import objects.Rocket;
 import processing.core.PApplet;
 
 public class Population extends Thread {
-	//private static final long TARGET_WAIT_TIME = (long) (1000000000d / SmartRockets.FPS); // nanoseconds
+	private static final int NUM_OF_THREADS = 1; //Runtime.getRuntime().availableProcessors(); 
 
 	static PApplet parent;
 	
@@ -43,9 +43,7 @@ public class Population extends Thread {
 		
 		fill = color;
 		setPopulationFitnessFunction(calc);
-		
-		int avlCores = Runtime.getRuntime().availableProcessors();
-		ArrayList<ArrayList<Rocket>> initArrays = ThreadPool.getArrayLists(avlCores);/*new ArrayList<ArrayList<Rocket>>();
+		ArrayList<ArrayList<Rocket>> initArrays = ThreadPool.getArrayLists(NUM_OF_THREADS);/*new ArrayList<ArrayList<Rocket>>();
 		
 		
 		// Initialize the array with as many arrays as there are available cores
@@ -54,7 +52,7 @@ public class Population extends Thread {
 		}
 		
 		Thread[] threads = new Thread[avlCores];*/
-		final int iterations = popsize / avlCores;
+		final int iterations = popsize / NUM_OF_THREADS;
 		
 		ThreadPool.getThreadsFromArrays(initArrays, new ProcessArrayListFunction() {
 			@Override
@@ -94,8 +92,7 @@ public class Population extends Thread {
 	public void evaluate() {
 		//this.matingpool.clear();
 		Double maxfit = 0d;
-		int threadCount = Runtime.getRuntime().availableProcessors();
-		ArrayList<Rocket[]> arrays = ThreadPool.splitArray(threadCount, rockets);
+		ArrayList<Rocket[]> arrays = ThreadPool.splitArray(NUM_OF_THREADS, rockets);
 		
 		// Iterate through all rockets and calculate their fitness
 		for (int i = 0; i < rockets.length; i++) {
@@ -147,8 +144,8 @@ public class Population extends Thread {
 		
 		final double THRESH = threshhold;
 		
-		arrays = ThreadPool.splitArray(threadCount, matingPollCandidates);
-		ArrayList<ArrayList<Rocket>> results = ThreadPool.getArrayLists(threadCount);
+		arrays = ThreadPool.splitArray(NUM_OF_THREADS, matingPollCandidates);
+		ArrayList<ArrayList<Rocket>> results = ThreadPool.getArrayLists(NUM_OF_THREADS);
 		
 		new ThreadPool(arrays, results, new ProcessArrayListWithResultsFunction() {
 			@Override

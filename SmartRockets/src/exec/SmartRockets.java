@@ -15,6 +15,7 @@ public class SmartRockets extends PApplet {
 	public static final int TARGET_R = 30;
 	public static final int POPULATION_SIZE = 1000;
 	public static final int ROCKET_ALPHA = 150;
+	public static final boolean FULL_SCREEN = false;
 	static final float FPS = 60;
 
 	public static volatile int counter = 0;
@@ -90,8 +91,9 @@ public class SmartRockets extends PApplet {
 	}
 
 	public void settings() {
-		size(400, 800);
-		fullScreen();
+		size(50, 100);
+		if (FULL_SCREEN)
+			fullScreen();
 
 	}
 
@@ -118,7 +120,7 @@ public class SmartRockets extends PApplet {
 		populationManager.addPopulation(
 				new Population(POPULATION_SIZE, fitnessPop1, new Color(0, 0, 0, ROCKET_ALPHA)));
 
-		for (int a = 0; a < 1; a ++)
+		for (int a = 0; a < 4; a ++)
 			populationManager.addPopulation(
 					new Population(POPULATION_SIZE, fitnessPop2,
 							new Color((137 * (a + 1)) % 250,
@@ -162,7 +164,7 @@ public class SmartRockets extends PApplet {
 					
 					@Override
 					public void run() {
-						
+						long beginTime = System.nanoTime();
 						if (!auto) {
 							run = false;
 							populationManager.evaluate();
@@ -173,6 +175,8 @@ public class SmartRockets extends PApplet {
 						}
 						
 						doneProcessing = true;
+						
+						System.out.printf("Execution time: %d ms\n", (System.nanoTime() - beginTime) / 1000000);
 					}
 				});
 				exec.start();

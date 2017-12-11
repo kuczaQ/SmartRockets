@@ -75,11 +75,11 @@ public class DNA {
 			// If i > mid the new gene should come from this partner
 //			if (i > mid) {
 			if (parent.random(1) < .9) {
-				newGenes.add(biggerFitness.genes.get(i).copy());
+				newGenes.add(biggerFitness.genes.get(i));
 			}
 			// If i < mid new gene should come from other partners gene's
 			else {
-				newGenes.add(smallerFitness.genes.get(i).copy());
+				newGenes.add(smallerFitness.genes.get(i));
 			}
 		}
 
