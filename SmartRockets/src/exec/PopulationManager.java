@@ -1,10 +1,14 @@
 package exec;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class PopulationManager {
-	ArrayList<Population> populations = new ArrayList<Population>();
-	
+	List<Population> populations = Collections.synchronizedList(new ArrayList<Population>());
+	private ArrayList<PopulationBlueprint> blueprints = new ArrayList<PopulationBlueprint>();
+	private ProgressListener progressListener;
+
 	public PopulationManager() {
 		super();
 	}
@@ -15,6 +19,44 @@ public class PopulationManager {
 				return false;
 		
 		return populations.add(p);
+	}
+	
+	public void addPopulationBlueprint(PopulationBlueprint... p) {
+		for (PopulationBlueprint pBl : p)
+			this.blueprints.add(pBl);
+	}
+	
+	public void initializePopulations() {
+		if (blueprints == null)
+			return;
+		
+
+		
+		long beginTime = System.nanoTime();
+		ArrayList<Thread> threads = new ArrayList<Thread>();
+		
+		for (PopulationBlueprint pBl : blueprints) {	
+			threads.add(new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Population p = new Population(pBl);
+					populations.add(p);
+					p.initialize();
+				}
+			}));
+		}
+		
+
+		ThreadPool threadPool = new ThreadPool(threads);
+		//progressListener = new ProgressListener(threadPool);
+		
+		//progressListener.start();
+		threadPool.start().join();
+		
+
+		
+		SmartRockets.printExecTime("Create time", beginTime);
+		blueprints = null;
 	}
 	
 	public void draw() {
@@ -45,8 +87,34 @@ public class PopulationManager {
 	}
 	
 	public void selection() {
+//		Thread[] threads = new Thread[populations.size()];
+//		int counter = 0;
+//		for (Population p : populations) {	
+//			threads[counter++] = new Thread(new Runnable() {
+//				@Override
+//				public void run() {
+//					p.selection();
+//				}
+//			});
+//		}
+//
+//
+//		ThreadPool threadPool = new ThreadPool(threads)
+//				.start();
+//		
+//		threadPool.join();
+
 		for (Population p : populations)
-			p.selection();
+			p.selection();;
+		
+//		while(finishedSelection());
+	}
+	
+	public boolean finishedSelection() {
+		for (Population p : populations)
+			if (!p.finishedSelection())
+				return false;
+		return true;
 	}
 	
 	public boolean allDone() {
@@ -59,6 +127,24 @@ public class PopulationManager {
 	public void setWait(boolean wait) {
 		for (Population p : populations)
 			p.setWait(wait);
+	}
+	
+	public int getProgress() {
+		int res = 0;
+		
+		if (populations.size() != 0) {
+			for (Population p : populations)
+				res += p.getProgress();
+			
+			if (res != 0)
+				res /= populations.size();
+
+			if (res == 100)
+				for (Population p : populations)
+					p.resetProgress();
+		}
+
+		return res;
 	}
 }
 

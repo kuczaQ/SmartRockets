@@ -4,36 +4,6 @@ import java.util.ArrayList;
 import objects.Rocket;
 
 class ThreadPool {
-	static class Worker extends Thread {
-		Rocket[] toProcess;
-		ProcessingFunction func;
-
-		public Worker(ProcessingFunction func, Rocket... r) {
-			this.func = func;
-			toProcess = r;
-		}
-
-		@Override
-		public void run() {
-			func.process(toProcess);
-		}
-	}
-
-	static class ProcessArray extends Thread {
-		ArrayList<Rocket> arr;
-		ProcessArrayListFunction func;
-
-		public ProcessArray(ProcessArrayListFunction func, ArrayList<Rocket> arr) {
-			this.arr = arr;
-			this.func = func;
-		}
-
-		@Override
-		public void run() {
-			func.process(arr);
-		}
-	}
-	
 	static class ProcessArrayWithResults extends Thread {
 		Rocket[] arr;
 		ArrayList<Rocket> res;
@@ -51,14 +21,26 @@ class ThreadPool {
 		}
 	}
 
+	// ###################################################################################
+	
 	Thread[] threads;
 	ArrayList<Rocket> results = null;
+	ProgressListener progressListener = null;
 
 	public ThreadPool(Thread[] threads) {
 		super();
 		this.threads = threads;
 	}
-
+	
+	public ThreadPool(ArrayList<Thread> threads) {
+		super();
+		this.threads = new Thread[threads.size()];
+		
+		int counter = 0;
+		for (Thread t : threads)
+			this.threads[counter++] = t;
+	}
+	
 	public ThreadPool(ArrayList<Rocket[]> arrays, ProcessingFunction func) {
 		super();
 		threads = new Thread[arrays.size()];
@@ -105,6 +87,10 @@ class ThreadPool {
 			}
 	}
 
+//	public void attachProgressListener(ProgressListener pl) {
+//		
+//	}
+	
 	public static ThreadPool createThreadPool(int threadCount, Rocket[] toProcess, ProcessingFunction func) {
 		int chunkSize = toProcess.length / threadCount, counter = 0;
 		ArrayList<Rocket> buffer = new ArrayList<Rocket>(chunkSize);
@@ -156,49 +142,37 @@ class ThreadPool {
 		return new ThreadPool(threads);
 	}
 
-	public static Rocket[] mergeArrays(ArrayList<ArrayList<Rocket>> initArrays) {
-		int szSum = 0, counterDebug = 0, szZeroDebug = 0, counter = 0;
+	public static Rocket[] mergeArraysToRocketArray(ArrayList<ArrayList<Rocket>> initArrays) {
+		int szSum = 0, counter = 0;
 		Rocket[] res;
 		
 		// Get the number of all elements
 		for (ArrayList<Rocket> arr : initArrays) {
-			szSum += arr.size();
-			if (arr.size() == 0)
-				szZeroDebug++;
-				
+			szSum += arr.size();		
 		}
-		
-		//System.out.println("zero arrays count == " + szZeroDebug);
 
 		// Initialize the rockets array
 		res = new Rocket[szSum];
 
-		
 		// Merge all arrays into one
-
 		for (ArrayList<Rocket> arr : initArrays) {
 			for (Rocket r : arr) {
 				res[counter++] = r;
 			}
 		}
+
+		return res;
+	}
+	
+	public static ArrayList<Rocket> mergeArraysToArrayList(ArrayList<ArrayList<Rocket>> initArrays) {
+		ArrayList<Rocket> res = new ArrayList<Rocket>();
 		
-		//		if (szSum > 0)
-//			for (int a = 0, index = 0; a < szSum; a++) {
-////				if (initArrays.get(counter).size() == 0) {
-////					counter++;
-////					index = 0;
-////				} else 
-//				if (a % initArrays.get(counter).size() == 0 && a != 0) {
-//					do {
-//						counter++;
-//						if (counter >= initArrays.size())
-//							return res;
-//					} while (initArrays.get(counter).size() == 0);
-//					index = 0;
-//				}
-//				counterDebug++;
-//				res[a] = initArrays.get(counter).get(index++);
-//			}
+		for (ArrayList<Rocket> arr : initArrays) {
+			for (Rocket r : arr) {
+				res.add(r);
+			}
+		}
+
 		return res;
 	}
 
@@ -262,6 +236,14 @@ class ThreadPool {
 
 	public ArrayList<Rocket> getResults() {
 		return results;
+	}
+	
+	public static boolean areAlive(Thread[] threads) {
+		for (Thread t : threads)
+			if (t.getState() != Thread.State.TERMINATED)
+				return true;
+		
+		return false;
 	}
 }
 

@@ -1,6 +1,8 @@
 package exec;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 import objects.CalculateFitness;
 import objects.DNA;
@@ -13,15 +15,20 @@ import processing.core.PVector;
 public class SmartRockets extends PApplet {
 	public static final int LIFESPAN = 3600;
 	public static final int TARGET_R = 30;
-	public static final int POPULATION_SIZE = 1000;
+	public static final int POPULATION_SIZE = 2500;
 	public static final int ROCKET_ALPHA = 150;
-	public static final boolean FULL_SCREEN = false;
-	static final float FPS = 60;
+	public static final boolean FULL_SCREEN = true;
+	public static final int SCREEN = 0;
+	public static final boolean DRAW = true;
+	public static final boolean SMALL_WINDOW = false;
+	static final float FPS = 75;
+	private static final int PROGRESS_BAR_HEIGHT = 15;
+	static int progress = 0;
 
 	public static volatile int counter = 0;
 
-	PopulationManager populationManager;
-	Vector2D target;
+	static PopulationManager populationManager;
+	static Vector2D target;
 	//public static boolean[] toStop = {false, false};
 
 
@@ -30,7 +37,7 @@ public class SmartRockets extends PApplet {
 	public static int rw = 200;
 	public static int rh = 25;
 
-	private volatile boolean auto = true, doneProcessing = true, run = true;
+	private static volatile boolean auto = true, doneProcessing = true, run = false;
 
 	private CalculateFitness fitnessPop1 = new CalculateFitness() {
 		@Override
@@ -90,11 +97,19 @@ public class SmartRockets extends PApplet {
 		PApplet.main("exec.SmartRockets");
 	}
 
+	@SuppressWarnings("unused")
 	public void settings() {
-		size(50, 100);
-		if (FULL_SCREEN)
-			fullScreen();
+		if (SMALL_WINDOW)
+			size(40, 160);
+		else {
+			size(400, 800);
 
+			if (FULL_SCREEN)
+				if (SCREEN != 0)
+					fullScreen(SCREEN);
+				else
+					fullScreen();
+		}
 	}
 
 	public void setup() {
@@ -116,28 +131,40 @@ public class SmartRockets extends PApplet {
 		target = new Vector2D(width/2, 50);
 		Rocket.setTarget(target);
 
-		populationManager = new PopulationManager();
-		populationManager.addPopulation(
-				new Population(POPULATION_SIZE, fitnessPop1, new Color(0, 0, 0, ROCKET_ALPHA)));
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				populationManager = new PopulationManager();
 
-		for (int a = 0; a < 4; a ++)
-			populationManager.addPopulation(
-					new Population(POPULATION_SIZE, fitnessPop2,
-							new Color((137 * (a + 1)) % 250,
-									  (89 * (a + 1)) % 250,
-									  (354 * (a + 1)) % 250,
-									  ROCKET_ALPHA)));
-		populationManager.start();
+				populationManager.addPopulationBlueprint(
+						new PopulationBlueprint(
+								POPULATION_SIZE,
+								fitnessPop1,
+								new Color(0, 0, 0, ROCKET_ALPHA)
+								));
+				for (int a = 0; a < 4; a ++)
+					populationManager.addPopulationBlueprint(
+							new PopulationBlueprint(
+									POPULATION_SIZE,
+									fitnessPop2,
+									new Color((137 * (a + 1)) % 250,
+											(89 * (a + 1)) % 250,
+											(354 * (a + 1)) % 250,
+											ROCKET_ALPHA)
+									));
+				populationManager.initializePopulations();
+				populationManager.start();
+				run = true;
+			}
+		}).start();
+		
 		textSize(20);
 	}
 
 	public void draw() {
 		//while (!population.allThreadsDone());
 
-
-
-
-		if (run && doneProcessing) {
+		if (run && doneProcessing) {	
 			background(220);
 			fill(130);
 			rect(rx, ry, rw, rh);
@@ -152,7 +179,8 @@ public class SmartRockets extends PApplet {
 
 			//population.update();
 			loadPixels();
-			populationManager.draw();
+			if (DRAW)
+				populationManager.draw();
 			updatePixels();
 			populationManager.continueWork();
 
@@ -176,7 +204,7 @@ public class SmartRockets extends PApplet {
 						
 						doneProcessing = true;
 						
-						System.out.printf("Execution time: %d ms\n", (System.nanoTime() - beginTime) / 1000000);
+						printExecTime("Execution time", beginTime);
 					}
 				});
 				exec.start();
@@ -185,10 +213,13 @@ public class SmartRockets extends PApplet {
 			text(counter, 15, 30);
 
 			text("Auto = " + auto, 15, 50);
+			
+			
 		} else {
 			//population.draw();
 		}
-
+		
+		drawProgressBar();
 	}
 
 	public void mousePressed() {
@@ -207,6 +238,21 @@ public class SmartRockets extends PApplet {
 		//		target.y = mouseY;
 	}
 
+	private void drawProgressBar() {
+		if (populationManager != null) {
+			progress = populationManager.getProgress();
+			
+			if (progress != 0) {
+				pushStyle();
+				noStroke();
+				fill(78, 210, 45, 220);
+				rect(0, height - PROGRESS_BAR_HEIGHT,
+					 map(progress, 0, 100, 0, width), PROGRESS_BAR_HEIGHT);
+				popStyle();
+			}
+		}
+	}
+	
 	public void keyPressed() {
 		if (key == ' ') {
 			populationManager.selection();
@@ -237,5 +283,9 @@ public class SmartRockets extends PApplet {
 
 	public static int getCounter() {
 		return counter;
+	}
+	
+	public static void printExecTime(String msg, long beginTime) {
+		System.out.printf("%s: %d ms\n", msg, (System.nanoTime() - beginTime) / 1000000);
 	}
 }
