@@ -1,11 +1,15 @@
 package exec;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import objects.Box;
 import objects.CalculateFitness;
+import objects.Circle;
 import objects.DNA;
+import objects.Obstacle;
 import objects.Rocket;
 import objects.Vector2D;
 import processing.core.PApplet;
@@ -15,20 +19,25 @@ import processing.core.PVector;
 public class SmartRockets extends PApplet {
 	public static final int LIFESPAN = 3600;
 	public static final int TARGET_R = 30;
-	public static final int POPULATION_SIZE = 2500;
+	public static final int POPULATION_SIZE = 100;
 	public static final int ROCKET_ALPHA = 150;
-	public static final boolean FULL_SCREEN = true;
+	public static final boolean FULL_SCREEN = false;
 	public static final int SCREEN = 0;
 	public static final boolean DRAW = true;
 	public static final boolean SMALL_WINDOW = false;
 	static final float FPS = 75;
 	private static final int PROGRESS_BAR_HEIGHT = 15;
 	static int progress = 0;
+	private static final int ITERATIONS = 10;
+	private static int iterationsCounter = 0;
 
 	public static volatile int counter = 0;
 
 	static PopulationManager populationManager;
+	static ObstacleManager obstacleManager;
+	static Settings settings;
 	static Vector2D target;
+	static Thread evaluateAndSelect = null;
 	//public static boolean[] toStop = {false, false};
 
 
@@ -38,7 +47,18 @@ public class SmartRockets extends PApplet {
 	public static int rh = 25;
 
 	private static volatile boolean auto = true, doneProcessing = true, run = false;
+	
 
+	public static void main(String[] args) {	
+//		try {
+//			System.out.println("Press enter to start...");
+//			System.in.read();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+		PApplet.main("exec.SmartRockets");
+	}
+	
 	private CalculateFitness fitnessPop1 = new CalculateFitness() {
 		@Override
 		public double calc(Rocket r) {
@@ -93,10 +113,6 @@ public class SmartRockets extends PApplet {
 		}
 	};
 
-	public static void main(String[] args) {		
-		PApplet.main("exec.SmartRockets");
-	}
-
 	@SuppressWarnings("unused")
 	public void settings() {
 		if (SMALL_WINDOW)
@@ -116,11 +132,10 @@ public class SmartRockets extends PApplet {
 		//colorMode(PConstants.ARGB);
 		
 		frameRate(FPS);
-
-		rw = (int) ((width) * .8);
+		
+		rw = (int) ((width) * .6);
 		rx = (width/2) - rw/2;
-		rw -= 200;
-		rx += 200;
+
 		ry = height/2;
 
 		setParents(this);
@@ -129,7 +144,18 @@ public class SmartRockets extends PApplet {
 		textSize(20);
 
 		target = new Vector2D(width/2, 50);
+		settings = new Settings(this);
 		Rocket.setTarget(target);
+		obstacleManager = new ObstacleManager();
+		Obstacle.setParent(this);
+		Rocket.setObstacleManager(obstacleManager);
+		
+		obstacleManager.addObstacle(new Box((width/2), height/2, (int) ((width) * .6) + 80, 25));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 200, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 180, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 140, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 100, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 60, height/2 + 180, 50));
 
 		new Thread(new Runnable() {
 			@Override
@@ -163,19 +189,26 @@ public class SmartRockets extends PApplet {
 
 	public void draw() {
 		//while (!population.allThreadsDone());
-
+//		if (evaluateAndSelect != null
+//			&& populationManager.finishedSelection()) {
+//			System.out.println("toWake");
+//			evaluateAndSelect.interrupt();
+//			evaluateAndSelect = null;
+//		}
+		
 		if (run && doneProcessing) {	
 			background(220);
 			fill(130);
-			rect(rx, ry, rw, rh);
+			//rect(rx, ry, rw, rh); // draw obstacle
+			obstacleManager.draw();
 			text(Double.toString(DNA.getMutationChance()), 15, 70);
-			// Renders target
+			// render target
 			fill(218, 64, 12);
 			stroke(1);
-			line(rx, ry, rx + rw, ry);
+			//line(rx, ry, rx + rw, ry);
 			noStroke();
 			ellipse(target.x, target.y, TARGET_R, TARGET_R);
-
+			// render target end
 
 			//population.update();
 			loadPixels();
@@ -187,9 +220,11 @@ public class SmartRockets extends PApplet {
 			//counter++;
 			if (counter++ == LIFESPAN || populationManager.allDone()) {
 				//populationManager.setWait(true);
+//				if (iterationsCounter++ == ITERATIONS)
+//					System.exit(0);
+				
 				doneProcessing = false;
-				Thread exec = new Thread(new Runnable() {
-					
+				Thread evaluateAndSelect = new Thread() {	
 					@Override
 					public void run() {
 						long beginTime = System.nanoTime();
@@ -202,40 +237,42 @@ public class SmartRockets extends PApplet {
 							counter = 0;
 						}
 						
-						doneProcessing = true;
+//						synchronized(evaluateAndSelect) {
+//							try {
+//								System.out.println("hit");
+//								evaluateAndSelect.wait(10000);
+//							} catch (InterruptedException e) {
+//								System.out.println("Woke up!");
+//							}
+//						}
 						
+						//evaluateAndSelect = null;
+						doneProcessing = true;
 						printExecTime("Execution time", beginTime);
+						
+						//System.exit(0);
 					}
-				});
-				exec.start();
+				};
+				evaluateAndSelect.start();
+				
 			}
 
 			text(counter, 15, 30);
 
 			text("Auto = " + auto, 15, 50);
 			
-			
-		} else {
-			//population.draw();
+			settings.draw();
 		}
 		
 		drawProgressBar();
+
 	}
 
 	public void mousePressed() {
-		//		for (Rocket r : population.rockets) {
-		//			float d = PVector.dist(new PVector(mouseX, mouseY), new PVector(r.pos.x, r.pos.y));
-		//			if (d < 10) {
-		//				if (r.fitness == Float.NaN) {
-		//					System.out.println("xD");
-		//				}
-		//				System.out.println(r.fitness);
-		//				fitnessDebug =  Double.toString(r.fitness);
-		//			}
-		//		}
-
-		//		target.x = mouseX;
-		//		target.y = mouseY;
+		if (settings.buttonClicked(mouseX, mouseY)) {
+			//System.out.println("clicked!");
+		}
+		obstacleManager.mouseClicked(mouseX, mouseY);
 	}
 
 	private void drawProgressBar() {

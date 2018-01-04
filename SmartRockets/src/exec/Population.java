@@ -13,6 +13,7 @@ public class Population extends Thread {
 	private static final int NUM_OF_THREADS = 1; //Runtime.getRuntime().availableProcessors(); 
 	private static final boolean MULTITHREADED = false;
 	static PApplet parent;
+	static PopulationManager manager;
 
 	public Rocket[] rockets;
 	private ArrayList<Rocket> matingPool = new ArrayList<Rocket>();
@@ -33,7 +34,7 @@ public class Population extends Thread {
 	//private ThreadManager threadManager;
 	private volatile boolean toStop = false, wait = false; //, toEvaluate = false, toSelect = false;
 	int popSize;
-	private boolean startSelection = false;
+	private volatile boolean startSelection = false, doneSelecting = true;
 
 	public Population(int popSize, CalculateFitness calc, Color color) {
 		this.fill = color;
@@ -74,8 +75,10 @@ public class Population extends Thread {
 	public void run() {
 		while (!toStop) {
 			if (startSelection) {
+				doneSelecting = false;
 				selection();
 				startSelection = false;
+				doneSelecting = true;
 			} else {
 				update();
 			}
@@ -349,7 +352,11 @@ public class Population extends Thread {
 	}
 	
 	public boolean finishedSelection() {
-		return !startSelection;	
+		return doneSelecting;	
+	}
+
+	public static void setManager(PopulationManager manager) {
+		Population.manager = manager;
 	}
 }
 

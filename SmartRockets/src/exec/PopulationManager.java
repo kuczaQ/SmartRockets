@@ -7,7 +7,7 @@ import java.util.List;
 public class PopulationManager {
 	List<Population> populations = Collections.synchronizedList(new ArrayList<Population>());
 	private ArrayList<PopulationBlueprint> blueprints = new ArrayList<PopulationBlueprint>();
-	private ProgressListener progressListener;
+	//private ProgressListener progressListener;
 
 	public PopulationManager() {
 		super();
@@ -30,6 +30,7 @@ public class PopulationManager {
 		if (blueprints == null)
 			return;
 		
+		//Population.setManager(this);
 
 		
 		long beginTime = System.nanoTime();
@@ -86,28 +87,32 @@ public class PopulationManager {
 			p.evaluate();
 	}
 	
+	@SuppressWarnings("unused")
 	public void selection() {
-//		Thread[] threads = new Thread[populations.size()];
-//		int counter = 0;
-//		for (Population p : populations) {	
-//			threads[counter++] = new Thread(new Runnable() {
-//				@Override
-//				public void run() {
-//					p.selection();
-//				}
-//			});
-//		}
-//
-//
-//		ThreadPool threadPool = new ThreadPool(threads)
-//				.start();
-//		
-//		threadPool.join();
-
-		for (Population p : populations)
-			p.selection();;
-		
-//		while(finishedSelection());
+		if (true)
+			for (Population p : populations)
+				p.selection();
+		else {
+			for (Population p : populations)
+				p.startSelection();
+			while(!finishedSelection());
+//			Thread[] threads = new Thread[populations.size()];
+//			int counter = 0;
+//			for (Population p : populations) {	
+//				threads[counter++] = new Thread(new Runnable() {
+//					@Override
+//					public void run() {
+//						p.selection();
+//					}
+//				});
+//			}
+//	
+//	
+//			ThreadPool threadPool = new ThreadPool(threads)
+//					.start();
+//			
+//			threadPool.join();
+		}
 	}
 	
 	public boolean finishedSelection() {
@@ -131,10 +136,14 @@ public class PopulationManager {
 	
 	public int getProgress() {
 		int res = 0;
-		
+		ArrayList<Integer> buff = new ArrayList<Integer>();
+	
 		if (populations.size() != 0) {
-			for (Population p : populations)
+			for (Population p : populations) {
 				res += p.getProgress();
+				if (p.getProgress() != 0)
+					buff.add(p.getProgress());
+			}
 			
 			if (res != 0)
 				res /= populations.size();
@@ -143,6 +152,15 @@ public class PopulationManager {
 				for (Population p : populations)
 					p.resetProgress();
 		}
+		
+//		if (res != 0) {
+//			System.out.println("progress start");
+//
+//			for (int i : buff)
+//				System.out.println(i);
+//			
+//			System.out.println("progress end");
+//		}
 
 		return res;
 	}

@@ -1,5 +1,8 @@
 package objects;
 
+import java.util.ArrayList;
+
+import exec.ObstacleManager;
 import exec.Population;
 import exec.SmartRockets;
 import processing.core.PApplet;
@@ -8,8 +11,12 @@ public class Rocket {
 	private static final int SPEED_LIMIT = 3;
 	private static PApplet parent;
 	private static Vector2D target;
-
+	private static ObstacleManager obstacleManager;
+	private static final int TAIL_SIZE = 50;
+	
 	private DNA dna;
+	private ArrayList<Vector2D> tail = new ArrayList<Vector2D>();
+	
 	private CalculateFitness calcFitness;
 	private Population population; // population to which the rocket belongs to
 
@@ -24,6 +31,12 @@ public class Rocket {
 
 
 
+	public Rocket(int x, int y, int r) {
+		this.pos.x = x;
+		this.pos.y = y;
+		this.radius = r;
+	}
+	
 	public Rocket(Population p) {
 		this.population = p;
 		calcFitness = population.getPopulationFitnessFunction();
@@ -74,8 +87,7 @@ public class Rocket {
 			//TODO generic object array
 			
 			// Rocket hit the barrier
-			if (this.getPos().x > SmartRockets.rx && this.getPos().x < SmartRockets.rx + SmartRockets.rw 
-					&& this.getPos().y > SmartRockets.ry && this.getPos().y < SmartRockets.ry + SmartRockets.rh) {
+			if (obstacleManager.collision(this)) {
 
 				this.setCrashed(true);
 				setCrashedOnObstacle(true);
@@ -93,7 +105,12 @@ public class Rocket {
 
 			//applies the random vectors defined in dna to consecutive frames of rocket
 			this.applyForce(this.getDna().genes.get(SmartRockets.getCounter() >= getDna().genes.size() ? getDna().genes.size() - 1 : SmartRockets.getCounter()));
-
+			
+			tail.add(getPos());
+			
+			while (tail.size() > TAIL_SIZE)
+				tail.remove(0);
+			
 			// if rocket has not got to goal and not crashed then update physics engine
 			if (!this.hasFinished() && !this.hasCrashed()) {
 				this.vel.add(this.acc);
@@ -125,6 +142,12 @@ public class Rocket {
 
 	public void show() {
 		drawCircle((int) getPos().x, (int) getPos().y, radius);
+		
+		for (int a = 0; a < tail.size(); a++) {
+			Vector2D v = tail.get(a);
+			drawCircle((int) v.x, (int) v.y,
+					(int) (radius - a * 50));
+		}
 	}
 
 	public void drawCircle(int x0, int y0, int radius) {
@@ -247,6 +270,14 @@ public class Rocket {
 
 	public static PApplet getParent() {
 		return parent;
+	}
+
+	public int getRadius() {
+		return radius;
+	}
+
+	public static void setObstacleManager(ObstacleManager obstacleManager) {
+		Rocket.obstacleManager = obstacleManager;
 	}
 }
 
