@@ -17,7 +17,10 @@ public class Circle extends Obstacle {
 		parent.ellipseMode(PConstants.CENTER);
 		parent.noStroke();
 		parent.fill(fill[0], fill[1], fill[2]);
-		parent.ellipse(getX(), getY(), radius, radius);
+		if (active)
+			parent.ellipse(parent.mouseX + xOff, parent.mouseY + yOff, radius, radius);
+		else
+			parent.ellipse(getX(), getY(), radius, radius);
 		parent.popStyle();
 	}
 

@@ -17,7 +17,10 @@ public class Box extends Obstacle {
 		parent.pushStyle();
 		parent.fill(fill[0], fill[1], fill[2]);
 		parent.rectMode(PConstants.CENTER);
-		parent.rect(getX(), getY(), width, height);
+		if (active)
+			parent.rect(parent.mouseX + xOff, parent.mouseY + yOff, width, height);
+		else
+			parent.rect(getX(), getY(), width, height);
 		parent.popStyle();
 	}
 

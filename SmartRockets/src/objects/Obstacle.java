@@ -4,10 +4,10 @@ import processing.core.PApplet;
 
 public abstract class Obstacle {
 	protected static PApplet parent;
-	private boolean active = false, animated = false;
-	public void setActive(boolean active) {
-		this.active = active;
-	}
+	protected boolean active = false;
+	private boolean animated = false;
+	protected int xOff, yOff;
+	
 
 	private float animStep = 0;
 	
@@ -23,22 +23,22 @@ public abstract class Obstacle {
 	}
 	
 	public void update() {
-		if (active) {
-			if (!animated) {
-				pos.x = PApplet.lerp(posOG.x, parent.mouseX, animStep);
-				pos.y = PApplet.lerp(posOG.y, parent.mouseY, animStep);
-				if (animStep > 1) {
-					animated = true;
-					animStep = 0;
-					
-				}
-				System.out.println(animStep);
-				animStep += 0.08;
-			} else {
-				pos.x = parent.mouseX;
-				pos.y = parent.mouseY;
-			}
-		}
+//		if (active) {
+//			if (!animated) {
+//				pos.x = PApplet.lerp(posOG.x, parent.mouseX, animStep);
+//				pos.y = PApplet.lerp(posOG.y, parent.mouseY, animStep);
+//				if (animStep > 1) {
+//					animated = true;
+//					animStep = 0;
+//					
+//				}
+//				System.out.println(animStep);
+//				animStep += 0.08;
+//			} else {
+//				pos.x = parent.mouseX;
+//				pos.y = parent.mouseY;
+//			}
+//		}
 	}
 	
 	public abstract void draw();
@@ -81,6 +81,17 @@ public abstract class Obstacle {
 	public void setAnimated(boolean animated) {
 		posOG = pos.copy();
 		this.animated = animated;
+	}
+	
+	public void setActive(boolean active) {
+		if (active) {
+			xOff = (int) (pos.x - parent.mouseX);
+			yOff = (int) (pos.y - parent.mouseY);
+		} else {
+			pos.x = parent.mouseX + xOff;
+			pos.y = parent.mouseY + yOff;
+		}
+		this.active = active;
 	}
 }
 

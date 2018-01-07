@@ -259,7 +259,8 @@ public class Population extends Thread {
 		success = false;
 		allDone = false;
 
-		SmartRockets.printExecTime("@" + this.getId() + "-selection time", beginTime);
+		if (debug)
+			SmartRockets.printExecTime("@" + this.getId() + "-selection time", beginTime);
 	}
 
 	public void update() {

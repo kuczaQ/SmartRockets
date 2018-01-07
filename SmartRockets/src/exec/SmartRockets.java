@@ -19,7 +19,7 @@ import processing.core.PVector;
 public class SmartRockets extends PApplet {
 	public static final int LIFESPAN = 3600;
 	public static final int TARGET_R = 30;
-	public static final int POPULATION_SIZE = 100;
+	public static final int POPULATION_SIZE = 1;
 	public static final int ROCKET_ALPHA = 150;
 	public static final boolean FULL_SCREEN = false;
 	public static final int SCREEN = 0;
@@ -48,8 +48,9 @@ public class SmartRockets extends PApplet {
 
 	private static volatile boolean auto = true, doneProcessing = true, run = false;
 	
-
+	//---------------------------------------------
 	public static void main(String[] args) {	
+	//---------------------------------------------
 //		try {
 //			System.out.println("Press enter to start...");
 //			System.in.read();
@@ -113,8 +114,10 @@ public class SmartRockets extends PApplet {
 		}
 	};
 
-	@SuppressWarnings("unused")
-	public void settings() {
+	@SuppressWarnings("unused")	
+	//---------------------------------------------
+	public void settings() {	
+	//---------------------------------------------
 		if (SMALL_WINDOW)
 			size(40, 160);
 		else {
@@ -127,12 +130,13 @@ public class SmartRockets extends PApplet {
 					fullScreen();
 		}
 	}
-
-	public void setup() {
+	
+	//---------------------------------------------
+	public void setup() {	
+	//---------------------------------------------
 		//colorMode(PConstants.ARGB);
 		
 		frameRate(FPS);
-		
 		rw = (int) ((width) * .6);
 		rx = (width/2) - rw/2;
 
@@ -151,11 +155,15 @@ public class SmartRockets extends PApplet {
 		Rocket.setObstacleManager(obstacleManager);
 		
 		obstacleManager.addObstacle(new Box((width/2), height/2, (int) ((width) * .6) + 80, 25));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 240, height/2 + 180, 50));
 		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 200, height/2 + 180, 50));
 		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 180, height/2 + 180, 50));
 		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 140, height/2 + 180, 50));
 		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 100, height/2 + 180, 50));
 		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 60, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + 20, height/2 + 180, 50));
+		obstacleManager.addObstacle(new Circle(((width/2) - rw/2) + -40, height/2 + 180, 50));
+
 
 		new Thread(new Runnable() {
 			@Override
@@ -168,7 +176,7 @@ public class SmartRockets extends PApplet {
 								fitnessPop1,
 								new Color(0, 0, 0, ROCKET_ALPHA)
 								));
-				for (int a = 0; a < 4; a ++)
+				for (int a = 0; a < 6; a ++)
 					populationManager.addPopulationBlueprint(
 							new PopulationBlueprint(
 									POPULATION_SIZE,
